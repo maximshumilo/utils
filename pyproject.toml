@@ -52,7 +52,7 @@ extend-ignore = [
     'D105', # Docs in magic methods
     'D106', # Docs in public nested class
     'ANN204', # Missing return type annotation for special method `__init__`
-    'ANN002', #  Missing type annotation for `*args`
+    'ANN002', # Missing type annotation for `*args`
     'ANN003', # Missing type annotation for `**kwargs`
     'ANN202', # Missing return type annotation for private function `wrapper`
 ]
