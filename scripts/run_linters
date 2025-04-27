@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+set -ex
+
+isort ./shumilo_utils
+ruff check ./shumilo_utils
