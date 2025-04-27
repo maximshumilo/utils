@@ -1,17 +1,21 @@
 import threading
 import time
 from functools import wraps
-from typing import Callable, TypeAlias
+from typing import (
+    Callable,
+    TypeAlias,
+)
 from weakref import WeakKeyDictionary
+
 
 _ObjType: TypeAlias = Callable | "RateLimiter"
 
 
 class RateLimiter:
     """
-    A class for limiting the frequency of function calls based on maximum requests per second (RPS)
-    or minimum delay between calls. Supports both decorator-based and direct rate-limiting.
+    A class for limiting function calls.
 
+    Supports both decorator-based and direct rate-limiting.
     The class can be configured with a default RPS or delay, and provides two decorator methods:
     - set_by_rps: Limits calls based on maximum requests per second.
     - set_by_delay: Limits calls based on minimum delay between calls.
@@ -28,7 +32,7 @@ class RateLimiter:
 
     def __init__(self, rps: float | None = None, delay: float | None = None):
         """
-        Initializes the RateLimiter with an optional default RPS or delay.
+        Initialize the RateLimiter with an optional default RPS or delay.
 
         Parameters
         ----------
@@ -43,7 +47,7 @@ class RateLimiter:
 
     def __call__(self, func: Callable) -> Callable:
         """
-        Allows using the RateLimiter as a decorator with default settings.
+        Call the RateLimiter as a decorator with default settings.
 
         Parameters
         ----------
@@ -108,7 +112,7 @@ class RateLimiter:
 
     def set_by_rps(self, max_rps: float) -> Callable:
         """
-        Decorator to limit function calls based on maximum requests per second (RPS).
+        Set to limit function calls based on maximum requests per second (RPS).
 
         Parameters
         ----------
@@ -133,7 +137,7 @@ class RateLimiter:
 
     def set_by_delay(self, delay_sec: float) -> Callable:
         """
-        Decorator to limit function calls based on the minimum delay between calls.
+        Set delay to limit function calls based on the minimum delay between calls.
 
         Parameters
         ----------
@@ -158,12 +162,17 @@ class RateLimiter:
 
     def sleep_by_rps(self, max_rps: float) -> None:
         """
-        Ensures the specified RPS interval passes before the next call to the RateLimiter object.
+        Sleep the execution of a function or operation to the limit.
+
+        This method calculates the time to wait between calls to
+        maintain the target RPS and enforces it by introducing
+        delays as necessary.
 
         Parameters
         ----------
         max_rps : float
-            Maximum requests per second.
+            Maximum number of requests per second allowed.
+            Must be a positive number.
         """
         if not isinstance(max_rps, (int, float)) or max_rps <= 0:
             raise ValueError("max_rps must be a positive number")
@@ -171,12 +180,25 @@ class RateLimiter:
 
     def sleep_by_delay(self, delay_sec: float) -> None:
         """
-        Ensures the specified delay passes before the next call to the RateLimiter object.
+        Sleeps for a specific delay period by invoking a waiting mechanism.
+
+        This method pauses the execution of the program for the specified
+        delay period.
+        The delay is implemented using an internal waiting mechanism.
+        The method performs input validation to ensure the delay
+        is a positive floating-point or integer number.
 
         Parameters
         ----------
         delay_sec : float
-            Minimum delay between calls (in seconds).
+            The delay period (in seconds) for which the program execution
+            should be paused.
+            Must be a positive number.
+
+        Raises
+        ------
+        ValueError
+            If the provided `delay_sec` parameter is not a positive number.
         """
         if not isinstance(delay_sec, (int, float)) or delay_sec <= 0:
             raise ValueError("delay_sec must be a positive number")
@@ -184,7 +206,13 @@ class RateLimiter:
 
     def _wrap_with_limit(self, interval_sec: float) -> Callable:
         """
-        Internal method to create a decorator with the specified interval.
+        Wrap a function ensuring that consecutive calls are limited to a specified interval.
+
+        This decorator monitors the time difference between successive calls to a given function
+        and ensures that the interval between calls is at least the specified value.
+        If the function is called sooner than the interval, the caller will be made to wait before
+        proceeding.
+        This is useful for rate-limiting calls to functions.
 
         Parameters
         ----------
@@ -194,7 +222,7 @@ class RateLimiter:
         Returns
         -------
         Callable
-            A decorator that limits the frequency of function calls.
+            The decorator function with the rate-limiting functionality applied.
         """
 
         def decorator(func: Callable) -> Callable:
@@ -212,14 +240,20 @@ class RateLimiter:
 
     def _wait(self, target_obj: _ObjType, interval_sec: float) -> None:
         """
-        Internal method to handle waiting logic for the specified interval.
+        Wait for the specified interval before proceeding.
+
+        This ensures that actions
+        performed on the given target object respect a minimum interval between consecutive calls.
+        The function locks the target object to avoid concurrent modifications
+        and maintains call times to calculate
+        appropriate wait durations.
 
         Parameters
         ----------
         target_obj : _ObjType
-            The function or object for which the rate limit is applied.
+            The target object for which the waiting mechanism is applied.
         interval_sec : float
-            Time interval between consecutive calls (in seconds).
+            The interval, in seconds, to wait between consecutive calls for the given target object.
         """
         with self._locks[target_obj]:
             now = time.time()
